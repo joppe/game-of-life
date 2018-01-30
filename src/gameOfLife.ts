@@ -5,6 +5,13 @@
 import { canvasFactory, ICanvas } from 'app/canvas';
 import { DEFAULT_OPTIONS, IOptions } from 'app/options';
 import { cellRegistryFactory, ICell } from 'app/cells';
+import { controlFactory } from 'app/controls';
+
+export interface IGameOfLifeApi {
+    addCell(x: number, y: number): void;
+    redraw(): void;
+    reset(): void;
+}
 
 export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void = (start: ICell[] = [], config: Partial<IOptions> = {}): void => {
     const options: IOptions = {...DEFAULT_OPTIONS, ...config};
@@ -16,11 +23,22 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
     const cellRegistry = cellRegistryFactory.create({
         cells: start
     });
-    const next = window.document.createElement('button');
-    next.innerText = 'next';
-    options.container.appendChild(next);
 
-    function draw() {
+    function show(x: number, y: number): boolean {
+        const count = cellRegistry.neighborCount(x, y);
+
+        if (cellRegistry.exists(x, y)) {
+            if (count === 2 || count == 3) {
+                return true;
+            }
+        } else if (count === 3) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function draw(): void {
         canvas.clear();
 
         canvas.context.fillStyle = options.backgroundColor;
@@ -43,40 +61,58 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
         }
     }
 
-    function show(x: number, y: number): boolean {
-        const count = cellRegistry.neighborCount(x, y);
+    const api: IGameOfLifeApi = {
+        addCell(mouseX: number, mouseY: number): void {
+            const rect: ClientRect = canvas.element.getBoundingClientRect();
 
-        if (cellRegistry.exists(x, y)) {
-            if (count === 2 || count == 3) {
-                return true;
-            }
-        } else if (count === 3) {
-            return true;
-        }
+            if (
+                mouseX > rect.left && mouseX < rect.right &&
+                mouseY > rect.top && mouseY < rect.bottom
+            ) {
+                const x: number = Math.floor((mouseX - rect.left) / options.cellSize);
+                const y: number = Math.floor((mouseY - rect.top) / options.cellSize);
 
-        return false;
-    }
-
-    function redraw() {
-        const cells: ICell[] = [];
-
-        for (const id in cellRegistry.get()) {
-            const cell: ICell = cellRegistry.findById(id);
-            const surroundingCells:ICell[] = cellRegistry.surroundingCells(cell.x, cell.y);
-
-            surroundingCells.concat([cell]).forEach((cell: ICell): void => {
-                if (show(cell.x, cell.y)) {
-                    cells.push(cell);
+                if (cellRegistry.exists(x, y)) {
+                    cellRegistry.remove(x, y);
+                } else {
+                    cellRegistry.add(x, y);
                 }
-            });
+
+                draw();
+            }
+        },
+
+        redraw(): void {
+            const cells: ICell[] = [];
+
+            for (const id in cellRegistry.get()) {
+                const cell: ICell = cellRegistry.findById(id);
+                const surroundingCells:ICell[] = cellRegistry.surroundingCells(cell.x, cell.y);
+
+                surroundingCells.concat([cell]).forEach((cell: ICell): void => {
+                    if (show(cell.x, cell.y)) {
+                        cells.push(cell);
+                    }
+                });
+            }
+
+            cellRegistry.set(cells);
+
+            draw();
+        },
+
+        reset(): void {
+            cellRegistry.set([]);
+
+            draw();
         }
+    };
 
-        cellRegistry.set(cells);
-
-        draw();
-    }
+    controlFactory.create({
+        api,
+        container: options.container,
+        delay: options.delay
+    });
 
     draw();
-
-    next.addEventListener('click', redraw);
 };
