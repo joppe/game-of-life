@@ -14,7 +14,7 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
         width: options.cellSize * options.horizontalCells,
         height: options.cellSize * options.verticalCells
     });
-    const cells = cellRegistryFactory.create({
+    const cellRegistry = cellRegistryFactory.create({
         cells: start
     });
     const next = window.document.createElement('button');
@@ -36,8 +36,8 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
         canvas.context.fillStyle = options.foregroundColor;
         canvas.context.strokeStyle = options.strokeColor;
 
-        for (const id in cells.get()) {
-            const cell: ICell = cells.findById(id);
+        for (const id in cellRegistry.get()) {
+            const cell: ICell = cellRegistry.findById(id);
 
             canvas.context.strokeRect(cell.x * options.cellSize, cell.y * options.cellSize, options.cellSize, options.cellSize);
             canvas.context.fillRect(cell.x * options.cellSize, cell.y * options.cellSize, options.cellSize, options.cellSize);
@@ -45,9 +45,9 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
     }
 
     function show(x: number, y: number): boolean {
-        const count = cells.neighborCount(x, y);
+        const count = cellRegistry.neighborCount(x, y);
 
-        if (cells.exists(x, y)) {
+        if (cellRegistry.exists(x, y)) {
             if (count === 2 || count == 3) {
                 return true;
             }
@@ -59,25 +59,20 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
     }
 
     function redraw() {
-        const store: ICell[] = [];
+        const cells: ICell[] = [];
 
-        for (const id in cells.get()) {
-            const cell: ICell = cells.findById(id);
+        for (const id in cellRegistry.get()) {
+            const cell: ICell = cellRegistry.findById(id);
+            const surroundingCells:ICell[] = cellRegistry.surroundingCells(cell.x, cell.y);
 
-            if (show(cell.x, cell.y)) {
-                store.push(cell);
-            }
-
-            const surroundingCells:ICell[] = cells.surroundingCells(cell.x, cell.y);
-
-            surroundingCells.forEach((cell: ICell): void => {
+            surroundingCells.concat([cell]).forEach((cell: ICell): void => {
                 if (show(cell.x, cell.y)) {
-                    store.push(cell);
+                    cells.push(cell);
                 }
-            })
+            });
         }
 
-        cells.set(store);
+        cellRegistry.set(cells);
 
         draw();
     }
