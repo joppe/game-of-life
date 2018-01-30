@@ -8,9 +8,8 @@ import { cellRegistryFactory, ICell } from 'app/cells';
 
 export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void = (start: ICell[] = [], config: Partial<IOptions> = {}): void => {
     const options: IOptions = {...DEFAULT_OPTIONS, ...config};
-    const container: HTMLBodyElement = window.document.querySelector('body');
     const canvas: ICanvas = canvasFactory.create({
-        container: container,
+        container: options.container,
         width: options.cellSize * options.horizontalCells,
         height: options.cellSize * options.verticalCells
     });
@@ -19,7 +18,7 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
     });
     const next = window.document.createElement('button');
     next.innerText = 'next';
-    container.appendChild(next);
+    options.container.appendChild(next);
 
     function draw() {
         canvas.clear();
