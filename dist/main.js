@@ -126,20 +126,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const canvas_1 = __webpack_require__(5);
 const options_1 = __webpack_require__(6);
 const cells_1 = __webpack_require__(7);
+const controls_1 = __webpack_require__(8);
 exports.gameOfLife = (start = [], config = {}) => {
     const options = Object.assign({}, options_1.DEFAULT_OPTIONS, config);
-    const container = window.document.querySelector('body');
     const canvas = canvas_1.canvasFactory.create({
-        container: container,
+        container: options.container,
         width: options.cellSize * options.horizontalCells,
         height: options.cellSize * options.verticalCells
     });
     const cellRegistry = cells_1.cellRegistryFactory.create({
         cells: start
     });
-    const next = window.document.createElement('button');
-    next.innerText = 'next';
-    container.appendChild(next);
+    function show(x, y) {
+        const count = cellRegistry.neighborCount(x, y);
+        if (cellRegistry.exists(x, y)) {
+            if (count === 2 || count == 3) {
+                return true;
+            }
+        }
+        else if (count === 3) {
+            return true;
+        }
+        return false;
+    }
     function draw() {
         canvas.clear();
         canvas.context.fillStyle = options.backgroundColor;
@@ -157,34 +166,47 @@ exports.gameOfLife = (start = [], config = {}) => {
             canvas.context.fillRect(cell.x * options.cellSize, cell.y * options.cellSize, options.cellSize, options.cellSize);
         }
     }
-    function show(x, y) {
-        const count = cellRegistry.neighborCount(x, y);
-        if (cellRegistry.exists(x, y)) {
-            if (count === 2 || count == 3) {
-                return true;
-            }
-        }
-        else if (count === 3) {
-            return true;
-        }
-        return false;
-    }
-    function redraw() {
-        const cells = [];
-        for (const id in cellRegistry.get()) {
-            const cell = cellRegistry.findById(id);
-            const surroundingCells = cellRegistry.surroundingCells(cell.x, cell.y);
-            surroundingCells.concat([cell]).forEach((cell) => {
-                if (show(cell.x, cell.y)) {
-                    cells.push(cell);
+    const api = {
+        addCell(mouseX, mouseY) {
+            const rect = canvas.element.getBoundingClientRect();
+            if (mouseX > rect.left && mouseX < rect.right &&
+                mouseY > rect.top && mouseY < rect.bottom) {
+                const x = Math.floor((mouseX - rect.left) / options.cellSize);
+                const y = Math.floor((mouseY - rect.top) / options.cellSize);
+                if (cellRegistry.exists(x, y)) {
+                    cellRegistry.remove(x, y);
                 }
-            });
+                else {
+                    cellRegistry.add(x, y);
+                }
+                draw();
+            }
+        },
+        redraw() {
+            const cells = [];
+            for (const id in cellRegistry.get()) {
+                const cell = cellRegistry.findById(id);
+                const surroundingCells = cellRegistry.surroundingCells(cell.x, cell.y);
+                surroundingCells.concat([cell]).forEach((cell) => {
+                    if (show(cell.x, cell.y)) {
+                        cells.push(cell);
+                    }
+                });
+            }
+            cellRegistry.set(cells);
+            draw();
+        },
+        reset() {
+            cellRegistry.set([]);
+            draw();
         }
-        cellRegistry.set(cells);
-        draw();
-    }
+    };
+    controls_1.controlFactory.create({
+        api,
+        container: options.container,
+        delay: options.delay
+    });
     draw();
-    next.addEventListener('click', redraw);
 };
 
 
@@ -225,6 +247,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_OPTIONS = {
     backgroundColor: '#6E8898',
     cellSize: 10,
+    container: window.document.querySelector('body'),
     delay: 500,
     foregroundColor: '#D3D0CB',
     horizontalCells: 60,
@@ -311,6 +334,46 @@ exports.cellRegistryFactory = (() => {
             };
             cellRegistry.set(options.cells);
             return cellRegistry;
+        }
+    };
+})();
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.controlFactory = (() => {
+    return {
+        create(options) {
+            let interval;
+            const wrapper = window.document.createElement('div');
+            wrapper.classList.add('py-3');
+            options.container.appendChild(wrapper);
+            const next = window.document.createElement('button');
+            next.innerText = 'next';
+            next.classList.add('btn', 'btn-primary', 'mr-2');
+            wrapper.appendChild(next);
+            next.addEventListener('click', () => {
+                window.clearInterval(interval);
+                options.api.redraw();
+            });
+            const auto = window.document.createElement('button');
+            auto.innerText = 'auto';
+            auto.classList.add('btn', 'btn-success', 'mr-2');
+            wrapper.appendChild(auto);
+            auto.addEventListener('click', () => {
+                window.clearInterval(interval);
+                interval = window.setInterval(() => {
+                    options.api.redraw();
+                }, options.delay);
+            });
+            options.container.addEventListener('click', (event) => {
+                options.api.addCell(event.clientX, event.clientY);
+            });
         }
     };
 })();

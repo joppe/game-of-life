@@ -28,7 +28,7 @@ export const gameOfLife: (start?: ICell[], config?: Partial<IOptions>) => void =
         const count = cellRegistry.neighborCount(x, y);
 
         if (cellRegistry.exists(x, y)) {
-            if (count === 2 || count == 3) {
+            if (count === 2 || count === 3) {
                 return true;
             }
         } else if (count === 3) {
