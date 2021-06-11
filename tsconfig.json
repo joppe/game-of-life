@@ -3,18 +3,16 @@
         "baseUrl": "./",
         "experimentalDecorators": true,
         "module": "commonjs",
-        "outDir": "dist",
+        "moduleResolution": "node",
         "paths": {
-            "app/*": [
+            "@/*": [
                 "./src/*"
             ]
         },
         "sourceMap": true,
+        "strict": true,
         "target": "es6"
     },
-    "exclude": [
-        "dist"
-    ],
     "include": [
         "./src/**/*.ts"
     ]
