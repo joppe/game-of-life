@@ -5,14 +5,21 @@ export const controlsFactory: Factory<void, ControlsFactoryOptions> = (
     options: ControlsFactoryOptions,
 ): void => {
     let interval: number;
+    let delay = options.delay;
+
+    function run(): void {
+        window.clearInterval(interval);
+
+        interval = window.setInterval((): void => {
+            options.api.redraw();
+        }, delay);
+    }
 
     const wrapper: HTMLDivElement = window.document.createElement('div');
-    // wrapper.classList.add('py-3');
     options.container.appendChild(wrapper);
 
     const next: HTMLButtonElement = window.document.createElement('button');
     next.innerText = 'next';
-    // next.classList.add('btn', 'btn-primary', 'mr-2');
     wrapper.appendChild(next);
     next.addEventListener('click', (): void => {
         window.clearInterval(interval);
@@ -20,17 +27,34 @@ export const controlsFactory: Factory<void, ControlsFactoryOptions> = (
         options.api.redraw();
     });
 
-    const auto: HTMLButtonElement = window.document.createElement('button');
-    auto.innerText = 'auto';
-    // auto.classList.add('btn', 'btn-success', 'mr-2');
-    wrapper.appendChild(auto);
-    auto.addEventListener('click', (): void => {
+    const speed: HTMLInputElement = window.document.createElement('input');
+    speed.setAttribute('type', 'range');
+    speed.setAttribute('min', '20');
+    speed.setAttribute('step', '10');
+    speed.setAttribute('max', '1000');
+
+    speed.value = String(options.delay);
+
+    wrapper.appendChild(speed);
+    speed.addEventListener('change', (event): void => {
+        delay = parseInt(<string>speed.value, 10);
+
+        run();
+    });
+
+    const reset: HTMLButtonElement = window.document.createElement('button');
+    reset.innerText = 'reset';
+    wrapper.appendChild(reset);
+    reset.addEventListener('click', (): void => {
         window.clearInterval(interval);
 
-        interval = window.setInterval((): void => {
-            options.api.redraw();
-        }, options.delay);
+        options.api.reset();
     });
+
+    const auto: HTMLButtonElement = window.document.createElement('button');
+    auto.innerText = 'auto';
+    wrapper.appendChild(auto);
+    auto.addEventListener('click', run);
 
     options.container.addEventListener('click', (event: MouseEvent): void => {
         options.api.addCell(event.clientX, event.clientY);
