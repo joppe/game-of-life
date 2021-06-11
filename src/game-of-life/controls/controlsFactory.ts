@@ -36,7 +36,7 @@ export const controlsFactory: Factory<void, ControlsFactoryOptions> = (
     speed.value = String(options.delay);
 
     wrapper.appendChild(speed);
-    speed.addEventListener('change', (event): void => {
+    speed.addEventListener('change', (): void => {
         delay = parseInt(<string>speed.value, 10);
 
         run();
